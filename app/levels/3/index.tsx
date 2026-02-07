@@ -1,47 +1,98 @@
 import {
-  View,
+  ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet
 } from "react-native";
-import { Link } from "expo-router";
+import { useState } from "react";
 
-export default function Index() {
+export default function Profile() {
+  const [role, setRole] = useState("");
+  const [skills, setSkills] = useState("");
+  const [projects, setProjects] = useState("");
+  const [goal, setGoal] = useState("");
+
+  const [headline, setHeadline] = useState("");
+  const [summary, setSummary] = useState("");
+  const [bio, setBio] = useState("");
+
+  const generateProfile = () => {
+    setHeadline(`${role} | ${skills}`);
+
+    setSummary(
+      `I am a computer science student interested in ${role.toLowerCase()} roles. ` +
+        `I have experience with ${skills} and have worked on ${projects}. ` +
+        `My current goal is ${goal}.`
+    );
+
+    setBio(`CS student interested in ${role.toLowerCase()} opportunities.`);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Uplift</Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Level 3: Professional Profile</Text>
+
       <Text style={styles.subtitle}>
-        Helping CS students prepare for their careers
+        Build a professional profile you can use anywhere.
       </Text>
 
-      <Link href="/levels/1" asChild>
-        <TouchableOpacity style={styles.levelButton}>
-          <Text style={styles.levelTitle}>Level 1</Text>
-          <Text style={styles.levelText}>Resume</Text>
-        </TouchableOpacity>
-      </Link>
+      {/* Inputs */}
+      <Text style={styles.label}>Target Role</Text>
+      <TextInput
+        value={role}
+        onChangeText={setRole}
+        placeholder="Software Engineer Intern"
+        placeholderTextColor="#64748b"
+        style={styles.input}
+      />
 
-      <Link href="/levels/2" asChild>
-        <TouchableOpacity style={styles.levelButton}>
-          <Text style={styles.levelTitle}>Level 2</Text>
-          <Text style={styles.levelText}>Elevator Pitch</Text>
-        </TouchableOpacity>
-      </Link>
+      <Text style={styles.label}>Skills</Text>
+      <TextInput
+        value={skills}
+        onChangeText={setSkills}
+        placeholder="Java, React, SQL"
+        placeholderTextColor="#64748b"
+        style={styles.input}
+      />
 
-      <Link href="/levels/3/app/profile" asChild>
-        <TouchableOpacity style={styles.levelButton}>
-          <Text style={styles.levelTitle}>Level 3</Text>
-          <Text style={styles.levelText}>Professional Profile</Text>
-        </TouchableOpacity>
-      </Link>
+      <Text style={styles.label}>Projects / Experience</Text>
+      <TextInput
+        value={projects}
+        onChangeText={setProjects}
+        placeholder="Hackathon project, class projects"
+        placeholderTextColor="#64748b"
+        style={styles.input}
+      />
 
-      <Link href="/levels/4" asChild>
-        <TouchableOpacity style={styles.levelButton}>
-          <Text style={styles.levelTitle}>Level 4</Text>
-          <Text style={styles.levelText}>Technical Interview</Text>
-        </TouchableOpacity>
-      </Link>
-    </View>
+      <Text style={styles.label}>Career Goal</Text>
+      <TextInput
+        value={goal}
+        onChangeText={setGoal}
+        placeholder="a summer internship"
+        placeholderTextColor="#64748b"
+        style={styles.input}
+      />
+
+      {/* Generate Button */}
+      <TouchableOpacity onPress={generateProfile} style={styles.button}>
+        <Text style={styles.buttonText}>Generate Profile</Text>
+      </TouchableOpacity>
+
+      {/* Outputs */}
+      {headline !== "" && (
+        <>
+          <Text style={styles.outputTitle}>Headline</Text>
+          <Text style={styles.outputBox}>{headline}</Text>
+
+          <Text style={styles.outputTitle}>Professional Summary</Text>
+          <Text style={styles.outputBox}>{summary}</Text>
+
+          <Text style={styles.outputTitle}>Short Bio</Text>
+          <Text style={styles.outputBox}>{bio}</Text>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
@@ -49,36 +100,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#020617",
-    padding: 24,
-    justifyContent: "center"
+    padding: 20
   },
   title: {
-    fontSize: 36,
+    fontSize: 26,
     fontWeight: "bold",
     color: "#e0f2fe",
-    marginBottom: 8,
-    textAlign: "center"
+    marginBottom: 8
   },
   subtitle: {
-    fontSize: 16,
     color: "#94a3b8",
-    marginBottom: 30,
-    textAlign: "center"
+    marginBottom: 20
   },
-  levelButton: {
-    backgroundColor: "#1e293b",
-    padding: 18,
-    borderRadius: 12,
-    marginBottom: 14
+  label: {
+    color: "#cbd5f5",
+    marginBottom: 4,
+    marginTop: 12
   },
-  levelTitle: {
-    color: "#7dd3fc",
-    fontSize: 14,
-    fontWeight: "600"
-  },
-  levelText: {
+  input: {
+    borderWidth: 1,
+    borderColor: "#334155",
+    borderRadius: 8,
+    padding: 10,
     color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "700"
+    marginBottom: 10
+  },
+  button: {
+    backgroundColor: "#7dd3fc",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginVertical: 20
+  },
+  buttonText: {
+    color: "#020617",
+    fontWeight: "bold",
+    fontSize: 16
+  },
+  outputTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#7dd3fc",
+    marginTop: 20
+  },
+  outputBox: {
+    backgroundColor: "#1e293b",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    color: "#ffffff"
   }
 });
+
