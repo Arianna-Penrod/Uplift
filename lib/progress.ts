@@ -12,7 +12,7 @@ export type Progress = {
 };
 
 const DEFAULT: Progress = {
-    unlockedLevel: 1,
+    unlockedLevel: 4,// For testing, we unlock all levels by default. Change to 1 for production.
     l1Checklist: {
         onePage: false,
         impactMetrics: false,
