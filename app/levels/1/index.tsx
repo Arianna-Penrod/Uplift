@@ -87,10 +87,19 @@ export default function Index() {
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, "")
     .split(/\s+/)
-    .filter(Boolean);
+    .filter((word) => word.length > 2 && /[a-zA-Z]/.test(word));
 
-  const uniqueWords = new Set(words);
-  const uniqueRatio = uniqueWords.size / words.length;
+const uniqueWordCount = new Set(words).size;
+const uniqueRatio = uniqueWordCount / wordCount;
+
+if (uniqueRatio < 0.4) {
+  setReport({
+    error:
+      "Your resume contains too much repetition and not enough unique content.",
+    wordCount,
+  });
+  return;
+}
 
   /* ---------------- ANTI-GIBBERISH DETECTION ---------------- */
 
@@ -103,7 +112,16 @@ export default function Index() {
   /* ---------------- SENTENCE DETECTION ---------------- */
 
   const sentences = resumeText.match(/[^.!?]+[.!?]+/g) || [];
-  const sentenceCount = sentences.length;
+  const sentenceCount = resumeText.split(/[.!?]/).length;
+
+if (sentenceCount < 3) {
+  setReport({
+    error:
+      "Your resume lacks clear sentence structure. Please paste a full professional resume.",
+    wordCount,
+  });
+  return;
+}
 
   const hasSentenceStructure = sentenceCount >= 3;
 
@@ -148,9 +166,29 @@ const looksLikeCode = codePatterns.some((pattern) =>
     }
   });
 
+  const wordFrequency: Record<string, number> = {};
+
+words.forEach((word) => {
+  const lower = word.toLowerCase();
+  wordFrequency[lower] = (wordFrequency[lower] || 0) + 1;
+});
+
+const mostRepeatedWordCount = Math.max(...Object.values(wordFrequency));
+const repetitionRatio = mostRepeatedWordCount / wordCount;
+
+if (repetitionRatio > 0.4) {
+  setReport({
+    error:
+      "Too much repetition",
+    wordCount,
+  });
+  return;
+}
+
   /* ---------------- ORIGINAL SCORING ---------------- */
 
-  const strongVerbs = ["led", "managed", "built", "created", "improved"];
+  // verbs
+  const strongVerbs = ["assembled", "led", "managed", "built", "calculated", "created", "improved", "solved", "repaired", "programmed", "remodeled", "engineered", "devised", "operated", "maintained", "optimized", "developed", "automated"];
   const weakVerbs = ["responsible", "helped", "worked"];
 
   const strongMatches = strongVerbs.filter((v) =>
@@ -161,15 +199,84 @@ const looksLikeCode = codePatterns.some((pattern) =>
     resumeText.toLowerCase().includes(v)
   );
 
-  const keywordList = ["leadership", "project", "analysis", "team"];
-  const keywordMatches = keywordList.filter((k) =>
-    resumeText.toLowerCase().includes(k)
-  );
+  // keywords
 
+  // ---------------- KEYWORDS ----------------
+
+// General professional keywords
+const generalKeywords = [
+  "leadership",
+  "project",
+  "analysis",
+  "team",
+  "collaboration",
+  "communication",
+  "problem solving",
+  "strategy",
+  "initiative",
+  "planning",
+  "organization",
+  "client",
+  "customer",
+  "efficiency",
+  "performance",
+];
+
+// Technical / CS keywords
+const techKeywords = [
+  "java",
+  "python",
+  "javascript",
+  "typescript",
+  "react",
+  "node",
+  "sql",
+  "database",
+  "docker",
+  "api",
+  "backend",
+  "frontend",
+  "firebase",
+  "pytorch",
+  "algorithms",
+  "data structures",
+  "agile",
+  "git",
+  "swift",
+  "c#",
+  "c ",
+  "angular",
+  "optimization",
+  "scalable",
+  "deployment",
+  "cloud",
+];
+
+// Combine both
+const keywordList = [...generalKeywords, ...techKeywords];
+
+const keywordMatches = keywordList.filter((k) =>
+  resumeText.toLowerCase().includes(k)
+);
+
+  // other scores:
   const pageScore = wordCount < 700 ? 95 : 60;
   const verbScore = strongMatches.length * 20;
-  const keywordScore = keywordMatches.length * 25;
+  
+  // keyword scoring
+  const totalPossibleKeywords = keywordList.length;
+const keywordScore = Math.min(
+  Math.floor((keywordMatches.length / totalPossibleKeywords) * 100),
+  100
+);
+
   const atsScore = resumeText.includes("|") ? 60 : 90;
+  const internshipScore = resumeText.toLowerCase().includes("intern") ? 90 : 60;
+  const numberMatches = resumeText.match(/\d+/g) || [];
+const metricScore = numberMatches.length > 5 ? 90 : 60;
+const gpaScore = resumeText.includes("gpa") ? 90 : 70;
+const awardScore = resumeText.includes("award") || resumeText.includes("hack")  ? 90 : 70;
+
 
   /* ---------------- INTEGRITY PENALTIES ---------------- */
 
@@ -180,14 +287,18 @@ const looksLikeCode = codePatterns.some((pattern) =>
   if (excessiveRepetition) integrityPenalty += 20;
   if (looksLikeCode) integrityPenalty += 60;
 
-  const totalScore = Math.max(
-    Math.min(
-      Math.floor(
-        (pageScore + verbScore + keywordScore + atsScore) / 4
-      ) - integrityPenalty,
-      100
+  const totalScore = Math.min(
+    Math.floor(
+      pageScore * 0.1 +
+      keywordScore * 0.25 +
+      verbScore * 0.15 +
+      metricScore * 0.15 +
+      internshipScore * 0.1 +
+      gpaScore * 0.05 +
+      awardScore * 0.1 +
+      atsScore * 0.1
     ),
-    0
+    100
   );
 
   /* ---------------- FINAL REPORT ---------------- */
@@ -197,6 +308,10 @@ const looksLikeCode = codePatterns.some((pattern) =>
     pageScore,
     verbScore,
     keywordScore,
+    internshipScore,
+    gpaScore,
+    awardScore,
+    metricScore,
     atsScore,
     strongMatches,
     weakMatches,
@@ -449,5 +564,6 @@ const looksLikeCode = codePatterns.some((pattern) =>
     </ScrollView>
   );
 }
+
 
 
