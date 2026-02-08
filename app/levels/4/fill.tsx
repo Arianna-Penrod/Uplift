@@ -27,6 +27,9 @@ import { View, Text, Pressable, ActivityIndicator, Modal } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 
+// Reusable card UI for consistent elevated sections
+import { Card } from "../../../components/Card";
+
 // We use MCQ question definitions ONLY to enforce the gate (must finish MCQs first)
 import { L4_QUESTIONS } from "../../../data/level4Qs";
 import { loadLevel4 } from "../../../lib/level4Store";
@@ -450,7 +453,7 @@ export default function Level4Fill() {
                                     setShowCongrats(false);
                                     router.replace("/");
                                 }}
-                                style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: "black" }}
+                                style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: "#0a7ea4" }}
                             >
                                 <Text style={{ color: "white", textAlign: "center", fontWeight: "800" }}>
                                     Return Home
@@ -479,7 +482,7 @@ export default function Level4Fill() {
             <Text style={{ fontSize: 24, fontWeight: "800" }}>Level 4: Fill in the Blank</Text>
 
             {/* Topics selector */}
-            <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+            <Card>
                 <Text style={{ fontWeight: "800" }}>Topics (tap = select, long-press = skip/unskip)</Text>
 
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -536,34 +539,34 @@ export default function Level4Fill() {
                 >
                     <Text style={{ fontWeight: "800" }}>Reset skipped topics</Text>
                 </Pressable>
-            </View>
+            </Card>
 
             {/* Overall progress (active exercises only) */}
-            <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+            <Card>
                 <Text style={{ fontWeight: "800" }}>
                     Overall Progress (active): {solvedCount}/{total} ({pct}%)
                 </Text>
                 <View style={{ height: 12, borderRadius: 999, borderWidth: 1, overflow: "hidden" }}>
-                    <View style={{ height: "100%", width: `${pct}%`, backgroundColor: "black" }} />
+                    <View style={{ height: "100%", width: `${pct}%`, backgroundColor: "#0a7ea4" }} />
                 </View>
-            </View>
+            </Card>
 
             {/* Topic progress (selected topic only) */}
-            <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+            <Card>
                 <Text style={{ fontWeight: "800" }}>
                     Topic: {selectedTopic ?? "None"} — {topicSolved}/{topicTotal} ({topicPct}%)
                 </Text>
                 <View style={{ height: 12, borderRadius: 999, borderWidth: 1, overflow: "hidden" }}>
-                    <View style={{ height: "100%", width: `${topicPct}%`, backgroundColor: "black" }} />
+                    <View style={{ height: "100%", width: `${topicPct}%`, backgroundColor: "#0a7ea4" }} />
                 </View>
-            </View>
+            </Card>
 
             {/* Exercise section */}
             {!effectiveCurrent ? (
                 // If no effectiveCurrent, either:
                 // - the selected topic is complete, OR
                 // - everything is complete
-                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 10 }}>
+                <Card>
                     <Text style={{ fontWeight: "800" }}>
                         {anyActiveUnsolved ? "✅ Selected topic complete!" : "🎉 All active fill-blank exercises solved!"}
                     </Text>
@@ -577,10 +580,10 @@ export default function Level4Fill() {
                             <Text style={{ textAlign: "center", fontWeight: "800" }}>Go to next topic</Text>
                         </Pressable>
                     )}
-                </View>
+                </Card>
             ) : (
                 // Normal "show current exercise" UI
-                <View style={{ gap: 12 }}>
+                <Card style={{ gap: 12 }}>
                     {/* 
             FillBlankCode renders the template, inputs, and "Check" button.
             key={effectiveCurrent.id} forces a full reset of that component when exercise changes
@@ -603,7 +606,7 @@ export default function Level4Fill() {
                     <Pressable onPress={onNextExercise} style={{ padding: 12, borderRadius: 10, borderWidth: 1 }}>
                         <Text style={{ textAlign: "center", fontWeight: "800" }}>Next Exercise</Text>
                     </Pressable>
-                </View>
+                </Card>
             )}
 
             {/* Bottom navigation buttons */}
@@ -619,7 +622,7 @@ export default function Level4Fill() {
                 {/* Home */}
                 <Pressable
                     onPress={() => router.replace("/")}
-                    style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: "black" }}
+                    style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: "#0a7ea4" }}
                 >
                     <Text style={{ color: "white", textAlign: "center", fontWeight: "800" }}>Home</Text>
                 </Pressable>

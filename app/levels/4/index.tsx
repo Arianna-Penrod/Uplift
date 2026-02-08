@@ -19,6 +19,9 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 
+// Reusable card UI for consistent elevated sections
+import { Card } from "../../../components/Card";
+
 // Question bank + list of topic names for Level 4
 import { L4_QUESTIONS, L4_TOPICS, type MCQ, type Topic } from "../../../data/level4Qs";
 
@@ -83,7 +86,7 @@ function anyUnansweredInTopic(topic: Topic, solved: Record<string, true>) {
 
 /**
  * A reusable “card” UI component that matches your fill-in-the-blank progress bars.
- * It prints "title: solved/total (pct%)" and draws a black progress bar.
+ * It prints "title: solved/total (pct%)" and draws a blue progress bar.
  */
 function ProgressCard({
     title,
@@ -98,7 +101,7 @@ function ProgressCard({
     const pct = total === 0 ? 0 : Math.round((solved / total) * 100);
 
     return (
-        <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+        <Card>
             <Text style={{ fontWeight: "800" }}>
                 {title}: {solved}/{total} ({pct}%)
             </Text>
@@ -106,9 +109,9 @@ function ProgressCard({
             {/* Outer bar */}
             <View style={{ height: 12, borderRadius: 999, borderWidth: 1, overflow: "hidden" }}>
                 {/* Filled bar: width changes with pct */}
-                <View style={{ height: "100%", width: `${pct}%`, backgroundColor: "black" }} />
+                <View style={{ height: "100%", width: `${pct}%`, backgroundColor: "#0a7ea4" }} />
             </View>
-        </View>
+        </Card>
     );
 }
 
@@ -421,76 +424,78 @@ export default function Level4() {
 
             {/* Topic progress bar: if the topic is skipped, show a simple card instead */}
             {isCurrentTopicSkipped ? (
-                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+                <Card>
                     <Text style={{ fontWeight: "800" }}>Topic Progress: (skipped)</Text>
-                </View>
+                </Card>
             ) : (
                 <ProgressCard title={`Topic Progress (${topic})`} solved={topicSolved} total={topicTotal} />
             )}
 
-            <Text style={{ fontWeight: "800" }}>Topics (tap = select, long-press = skip/unskip)</Text>
+            <Card>
+                <Text style={{ fontWeight: "800" }}>Topics (tap = select, long-press = skip/unskip)</Text>
 
-            {/* Topic pills */}
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {L4_TOPICS.map((t) => {
-                    const skipped = !!levelState.skippedTopics?.[t];
-                    const selectedTopic = t === topic;
+                {/* Topic pills */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {L4_TOPICS.map((t) => {
+                        const skipped = !!levelState.skippedTopics?.[t];
+                        const selectedTopic = t === topic;
 
-                    return (
-                        <Pressable
-                            key={t}
-                            onPress={() => onSelectTopic(t)}
-                            onLongPress={() => onToggleSkip(t)}
-                            style={{
-                                paddingVertical: 8,
-                                paddingHorizontal: 12,
-                                borderWidth: 1,
-                                borderRadius: 999,
-                                backgroundColor: selectedTopic ? "#000" : skipped ? "#eee" : "transparent",
-                                opacity: skipped ? 0.6 : 1,
-                            }}
-                        >
-                            <Text
+                        return (
+                            <Pressable
+                                key={t}
+                                onPress={() => onSelectTopic(t)}
+                                onLongPress={() => onToggleSkip(t)}
                                 style={{
-                                    color: selectedTopic ? "#fff" : "#000",
-                                    fontWeight: "700",
-                                    textDecorationLine: skipped ? "line-through" : "none",
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 12,
+                                    borderWidth: 1,
+                                    borderRadius: 999,
+                                    backgroundColor: selectedTopic ? "#000" : skipped ? "#eee" : "transparent",
+                                    opacity: skipped ? 0.6 : 1,
                                 }}
                             >
-                                {t}
-                            </Text>
-                        </Pressable>
-                    );
-                })}
-            </View>
+                                <Text
+                                    style={{
+                                        color: selectedTopic ? "#fff" : "#000",
+                                        fontWeight: "700",
+                                        textDecorationLine: skipped ? "line-through" : "none",
+                                    }}
+                                >
+                                    {t}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </View>
 
-            {/* Reset skip flags */}
-            <Pressable
-                onPress={onResetSkipped}
-                style={{ alignSelf: "flex-start", padding: 10, borderWidth: 1, borderRadius: 10 }}
-            >
-                <Text style={{ fontWeight: "800" }}>Reset skipped topics</Text>
-            </Pressable>
+                {/* Reset skip flags */}
+                <Pressable
+                    onPress={onResetSkipped}
+                    style={{ alignSelf: "flex-start", padding: 10, borderWidth: 1, borderRadius: 10 }}
+                >
+                    <Text style={{ fontWeight: "800" }}>Reset skipped topics</Text>
+                </Pressable>
+            </Card>
 
             {/* Main content area: skipped topic message OR question UI */}
             {isCurrentTopicSkipped ? (
-                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 10 }}>
+                <Card>
                     <Text style={{ fontWeight: "800" }}>This topic is currently skipped.</Text>
                     <Pressable onPress={() => onToggleSkip(topic)} style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
                         <Text style={{ textAlign: "center", fontWeight: "800" }}>Unskip topic</Text>
                     </Pressable>
-                </View>
+                </Card>
             ) : !q ? (
                 // If q is null, that means this topic has no unanswered questions
-                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
+                <Card>
                     <Text style={{ fontWeight: "800" }}>✅ Topic complete!</Text>
                     <Text style={{ color: "#444" }}>
                         {mcqComplete ? "All MCQs complete — continue below." : "Choose another topic or continue."}
                     </Text>
-                </View>
+                </Card>
             ) : (
                 // Normal question UI
-                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 10 }}>
+                <Card>
                     <Text style={{ fontSize: 16, fontWeight: "800" }}>{q.prompt}</Text>
 
                     {q.choices.map((choice, idx) => {
@@ -524,7 +529,7 @@ export default function Level4() {
                             )}
                         </View>
                     )}
-                </View>
+                </Card>
             )}
 
             {/* Bottom controls */}
