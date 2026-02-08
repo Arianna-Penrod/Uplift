@@ -22,7 +22,11 @@ export default function Level4Fill() {
     const [st, setSt] = useState<Level4FillState | null>(null);
     const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
     const [cursorId, setCursorId] = useState<string | null>(null);
+
+    // ✅ popup state
     const [showCongrats, setShowCongrats] = useState(false);
+    // ✅ prevents modal from re-opening after you close it
+    const [congratsShown, setCongratsShown] = useState(false);
 
     const topicLabel = (t?: string) => (t && t.trim().length ? t : "General");
 
@@ -65,7 +69,10 @@ export default function Level4Fill() {
                 if (!alive) return;
 
                 setSt(s);
+
+                // ✅ reset popup flags when you enter the screen
                 setShowCongrats(false);
+                setCongratsShown(false);
 
                 const firstNonSkippedWithUnsolved =
                     topics.find(
@@ -87,8 +94,9 @@ export default function Level4Fill() {
     );
 
     // ---- Derived values (NO HOOKS) ----
-    const activeExercises =
-        st ? L4_FILL_EXERCISES.filter((ex) => !st.skippedTopics[topicLabel((ex as any).topic)]) : [];
+    const activeExercises = st
+        ? L4_FILL_EXERCISES.filter((ex) => !st.skippedTopics[topicLabel((ex as any).topic)])
+        : [];
 
     const solvedCount = st ? activeExercises.filter((ex) => st.solved[ex.id]).length : 0;
     const total = activeExercises.length;
@@ -97,12 +105,14 @@ export default function Level4Fill() {
     const anyActiveUnsolved = st ? activeExercises.some((ex) => !st.solved[ex.id]) : true;
     const fillComplete = !!st && (total === 0 ? true : !anyActiveUnsolved);
 
-    // show congrats once when completed
+    // ✅ show congrats only once per completion
     useEffect(() => {
-        if (fillComplete && !showCongrats) setShowCongrats(true);
-    }, [fillComplete, showCongrats]);
+        if (fillComplete && !congratsShown) {
+            setShowCongrats(true);
+            setCongratsShown(true);
+        }
+    }, [fillComplete, congratsShown]);
 
-    // If still loading, render spinner (no early return => no hook order problems)
     if (!st) {
         return <ActivityIndicator style={{ marginTop: 40 }} />;
     }
@@ -183,18 +193,11 @@ export default function Level4Fill() {
     return (
         <View style={{ padding: 16, gap: 12 }}>
             {/* ✅ Congrats popup */}
-            <Modal
-                transparent
-                visible={showCongrats}
-                animationType="fade"
-                onRequestClose={() => setShowCongrats(false)}
-            >
+            <Modal transparent visible={showCongrats} animationType="fade" onRequestClose={() => setShowCongrats(false)}>
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", padding: 20 }}>
                     <View style={{ backgroundColor: "white", borderRadius: 14, padding: 16, gap: 12 }}>
                         <Text style={{ fontSize: 20, fontWeight: "900" }}>🎉 Congrats!</Text>
-                        <Text style={{ color: "#333" }}>
-                            You finished all active Level 4 fill-in-the-blank exercises.
-                        </Text>
+                        <Text style={{ color: "#333" }}>You finished all active Level 4 fill-in-the-blank exercises.</Text>
 
                         <View style={{ flexDirection: "row", gap: 10 }}>
                             <Pressable
@@ -313,10 +316,7 @@ export default function Level4Fill() {
                     </Text>
 
                     {anyActiveUnsolved && (
-                        <Pressable
-                            onPress={jumpToNextTopicWithUnsolved}
-                            style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}
-                        >
+                        <Pressable onPress={jumpToNextTopicWithUnsolved} style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
                             <Text style={{ textAlign: "center", fontWeight: "800" }}>Go to next topic</Text>
                         </Pressable>
                     )}
@@ -348,10 +348,7 @@ export default function Level4Fill() {
                     <Text style={{ textAlign: "center", fontWeight: "800" }}>Back</Text>
                 </Pressable>
 
-                <Pressable
-                    onPress={() => router.replace("/")}
-                    style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: "black" }}
-                >
+                <Pressable onPress={() => router.replace("/")} style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: "black" }}>
                     <Text style={{ color: "white", textAlign: "center", fontWeight: "800" }}>Home</Text>
                 </Pressable>
 
@@ -363,6 +360,7 @@ export default function Level4Fill() {
                         setSelectedTopic(firstNonSkipped);
                         setCursorId(null);
                         setShowCongrats(false);
+                        setCongratsShown(false);
                     }}
                     style={{ padding: 14, borderRadius: 10, borderWidth: 1 }}
                 >
