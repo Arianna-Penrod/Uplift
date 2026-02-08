@@ -1,37 +1,32 @@
-import { Image } from 'expo-image';
-import { StyleSheet } from 'react-native';
+import { Image } from "expo-image";
+import { StyleSheet } from "react-native";
+import { Link } from "expo-router";
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#4FB6D6', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: "#4FB6D6", dark: "#1D3D47" }}
       headerImage={
         <Image
-          source={require('@/assets/images/logo.png')}
+          source={require("@/assets/images/logo.png")}
           style={styles.logo}
         />
       }
     >
-      {/* App Title + Slogan */}
+      {/* Title */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Uplift</ThemedText>
-        <ThemedText type="default" style={styles.slogan}>
-          Elevate your future
-        </ThemedText>
+        <ThemedText style={styles.slogan}>Elevate your future</ThemedText>
       </ThemedView>
 
       {/* Level 1 */}
       <Link href="/levels/1" asChild>
         <ThemedView style={styles.levelCard}>
-          <Image
-            source={require('@/assets/images/level1.png')}
-            style={styles.levelIcon}
-          />
+          <Image source={require("@/assets/images/level1.png")} style={styles.levelIcon} />
           <ThemedView>
             <ThemedText type="subtitle">Level 1: Resume</ThemedText>
             <ThemedText>Tap to open</ThemedText>
@@ -40,47 +35,44 @@ export default function HomeScreen() {
       </Link>
 
       {/* Level 2 */}
-      <ThemedView style={[styles.levelCard, styles.locked]}>
-        <Image
-          source={require('@/assets/images/level2.png')}
-          style={styles.levelIcon}
-        />
-        <ThemedView>
-          <ThemedText type="subtitle">Level 2: Elevator Pitch</ThemedText>
-          <ThemedText style={styles.lockText}>Locked 🔒</ThemedText>
+      <Link href="/levels/2" asChild>
+        <ThemedView style={styles.levelCard}>
+          <Image source={require("@/assets/images/level2.png")} style={styles.levelIcon} />
+          <ThemedView>
+            <ThemedText type="subtitle">Level 2: Elevator Pitch</ThemedText>
+            <ThemedText>Tap to open</ThemedText>
+          </ThemedView>
         </ThemedView>
-      </ThemedView>
+      </Link>
 
       {/* Level 3 */}
-      <ThemedView style={[styles.levelCard, styles.locked]}>
-        <Image
-          source={require('@/assets/images/level3.png')}
-          style={styles.levelIcon}
-        />
-        <ThemedView>
-          <ThemedText type="subtitle">Level 3: Professional Profile</ThemedText>
-          <ThemedText style={styles.lockText}>Locked 🔒</ThemedText>
+      <Link href="/levels/3" asChild>
+        <ThemedView style={styles.levelCard}>
+          <Image source={require("@/assets/images/level3.png")} style={styles.levelIcon} />
+          <ThemedView>
+            <ThemedText type="subtitle">Level 3: Professional Profile</ThemedText>
+            <ThemedText>Tap to open</ThemedText>
+          </ThemedView>
         </ThemedView>
-      </ThemedView>
+      </Link>
 
       {/* Level 4 */}
-      <ThemedView style={[styles.levelCard, styles.locked]}>
-        <Image
-          source={require('@/assets/images/level4.png')}
-          style={styles.levelIcon}
-        />
-        <ThemedView>
-          <ThemedText type="subtitle">Level 4: Technical Interview</ThemedText>
-          <ThemedText style={styles.lockText}>Locked 🔒</ThemedText>
+      <Link href="/levels/4" asChild>
+        <ThemedView style={styles.levelCard}>
+          <Image source={require("@/assets/images/level4.png")} style={styles.levelIcon} />
+          <ThemedView>
+            <ThemedText type="subtitle">Level 4: Technical Interview</ThemedText>
+            <ThemedText>Tap to open</ThemedText>
+          </ThemedView>
         </ThemedView>
-      </ThemedView>
+      </Link>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   titleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 28,
   },
   slogan: {
@@ -90,29 +82,22 @@ const styles = StyleSheet.create({
   logo: {
     height: 160,
     width: 160,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 40,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   levelCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 16,
     padding: 18,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.02)',
+    backgroundColor: "rgba(0,0,0,0.02)",
     marginBottom: 14,
   },
   levelIcon: {
     width: 52,
     height: 52,
-    resizeMode: 'contain',
-  },
-  locked: {
-    opacity: 0.45,
-  },
-  lockText: {
-    fontSize: 12,
-    opacity: 0.6,
+    resizeMode: "contain",
   },
 });
