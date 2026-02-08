@@ -1,4 +1,4 @@
-// components/FillBlankCode.tsx
+// components/FillBlankUI.tsx
 import React, { useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import type { FillBlankExercise, BlankRule } from "../data/level4FillBlankQs";
@@ -18,6 +18,21 @@ function matchBlank(input: string, rule: BlankRule) {
 
     const re = new RegExp(rule.pattern, rule.flags ?? "");
     return re.test(raw);
+}
+
+function ruleHint(rule: BlankRule) {
+    if (rule.kind === "exact") {
+        const list = Array.isArray(rule.answer) ? rule.answer : [rule.answer];
+        return list.join(" / ");
+    }
+
+    // If your data includes an optional example for regex rules, show it
+    if ("example" in (rule as any) && (rule as any).example) {
+        return (rule as any).example as string;
+    }
+
+    const flags = rule.flags ?? "";
+    return `/${rule.pattern}/${flags}`;
 }
 
 function parseLine(line: string) {
@@ -45,9 +60,13 @@ export function FillBlankCode({
     onSolved?: () => void;
 }) {
     const lines = useMemo(() => exercise.template.split("\n"), [exercise.template]);
+
     const [fills, setFills] = useState<string[]>(() => Array(exercise.blanks.length).fill(""));
     const [checked, setChecked] = useState(false);
     const [ok, setOk] = useState<boolean[]>(() => Array(exercise.blanks.length).fill(false));
+
+    // ✅ reveal answers toggle
+    const [showAnswers, setShowAnswers] = useState(false);
 
     const solved = checked && ok.every(Boolean);
 
@@ -62,12 +81,42 @@ export function FillBlankCode({
         <View style={{ gap: 12 }}>
             <Text style={{ fontSize: 18, fontWeight: "800" }}>{exercise.title}</Text>
 
+            {/* ✅ Reveal answers toggle */}
+            <Pressable
+                onPress={() => setShowAnswers((v) => !v)}
+                style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: "#999",
+                    backgroundColor: showAnswers ? "#f6f6f6" : "transparent",
+                }}
+            >
+                <Text style={{ textAlign: "center", fontWeight: "800" }}>
+                    {showAnswers ? "Hide answers" : "Reveal answers"}
+                </Text>
+            </Pressable>
+
+            {showAnswers && (
+                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 6 }}>
+                    <Text style={{ fontWeight: "800" }}>Answer key</Text>
+                    {exercise.blanks.map((rule, i) => (
+                        <Text key={i} style={{ color: "#333" }}>
+                            Blank {i + 1}: {ruleHint(rule)}
+                        </Text>
+                    ))}
+                </View>
+            )}
+
             <View style={{ borderWidth: 1, borderRadius: 10, padding: 12 }}>
                 {lines.map((line, lineIdx) => {
                     const parts = parseLine(line);
 
                     return (
-                        <View key={lineIdx} style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+                        <View
+                            key={lineIdx}
+                            style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}
+                        >
                             {parts.map((p, idx) => {
                                 if (p.type === "text") {
                                     return (
@@ -123,9 +172,14 @@ export function FillBlankCode({
                     <Text style={{ fontWeight: "800" }}>
                         {solved ? "✅ Looks correct (matcher passed)!" : "❌ Fix the red blanks and try again."}
                     </Text>
-                    {!!exercise.explanation && <Text style={{ marginTop: 6, color: "#444" }}>{exercise.explanation}</Text>}
+                    {!!exercise.explanation && (
+                        <Text style={{ marginTop: 6, color: "#444" }}>{exercise.explanation}</Text>
+                    )}
                 </View>
             )}
         </View>
     );
 }
+
+// Optional: default export for convenience
+export default FillBlankCode;
