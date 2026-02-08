@@ -1,6 +1,6 @@
 # Uplift (React Native + Expo Router)
 
-Uplift is a mobile app built with React Native + Expo that guides users through “levels” of career readiness (Resume, Elevator Pitch, Professional Profile, and Technical Interview practice). The app uses **Expo Router** for file-based navigation and a **light-mode** UI.
+Uplift is a web page and a mobile app built with React Native + Expo that guides users through “levels” of career readiness (Resume, Elevator Pitch, Professional Profile, and Technical Interview practice). The app uses **Expo Router** for file-based navigation and a **light-mode** UI.
 
 ---
 
