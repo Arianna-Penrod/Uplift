@@ -7,3 +7,4 @@ expo-env.d.ts
 .env
 server/.env
 .env
+node_modules
