@@ -1,32 +1,44 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+// app/_layout.tsx
+// Root layout for Expo Router.
+//
+// This is the TOP-MOST navigator that wraps your entire app.
+// We use a Stack here so your tabs (/(tabs)) are one screen,
+// and other routes like /levels/... can be pushed on top.
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import React from "react";
+import { Stack } from "expo-router";
+import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+// Force React Navigation's theme to be light.
+// (This affects navigator backgrounds, headers, etc.)
+const LIGHT_NAV_THEME = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: "#FFFFFF",
+    card: "#FFFFFF",
+  },
+};
 
+export default function RootLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}
-    >
-      {/* Home ONLY */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
-          ),
+    <ThemeProvider value={LIGHT_NAV_THEME}>
+      {/* Dark status bar icons for light background */}
+      <StatusBar style="dark" />
+
+      <Stack
+        screenOptions={{
+          headerShown: false,
+
+          // Consistent background for every screen in the root stack
+          // (including /levels/...)
+          contentStyle: { backgroundColor: "#FFFFFF" },
         }}
-      />
-    </Tabs>
+      >
+        {/* Your main tabs group */}
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </ThemeProvider>
   );
 }
