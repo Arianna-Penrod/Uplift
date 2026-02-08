@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Platform } from "react-native";
 import { router } from "expo-router";
 
 type Feedback = {
@@ -15,6 +15,44 @@ export default function Level2ElevatorPitch() {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+
+async function speakToText() {
+  if (Platform.OS !== "web") {
+    setError("Speech-to-text is web-only right now.");
+    return;
+  }
+
+  // @ts-ignore
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    setError("Your browser doesn't support speech recognition. Try Chrome.");
+    return;
+  }
+
+  setError(null);
+
+  const rec = new SpeechRecognition();
+  rec.lang = "en-US";
+  rec.interimResults = false;
+  rec.continuous = false;
+
+  rec.onstart = () => setListening(true);
+  rec.onend = () => setListening(false);
+
+  rec.onerror = (e: any) => {
+    setListening(false);
+    setError("Speech recognition failed.");
+  };
+
+  rec.onresult = (event: any) => {
+    const text = event.results?.[0]?.[0]?.transcript ?? "";
+    setPitch(text.trim());
+  };
+
+  rec.start();
+}
+
 
   async function getFeedback() {
     setLoading(true);
@@ -51,7 +89,17 @@ export default function Level2ElevatorPitch() {
         style={styles.input}
       />
 
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
+  <Pressable
+    onPress={speakToText}
+    disabled={listening}
+    style={[styles.button, listening && styles.buttonDisabled]}
+  >
+    <Text style={styles.buttonText}>
+      {listening ? "Listening..." : "🎤 Speak Pitch"}
+    </Text>
+  </Pressable>
+
         <Pressable
           onPress={getFeedback}
           disabled={loading || pitch.trim().length < 30}
