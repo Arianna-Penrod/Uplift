@@ -27,6 +27,14 @@ export const L4_QUESTIONS: MCQ[] = [
         explanation: "Quadratic: (2n)^2 = 4n^2.",
     },
     {
+        id: "bigo-ggg",
+        topic: "Big-O",
+        prompt: "DFJDSHJSKs work in which time complexity?",
+        choices: ["O(n)", "O(log n)", "O(n log n)", "O(n^2)"],
+        answerIndex: 3,
+        explanation: "Quadratic: (2n)^2 = 4n^2.",
+    },
+    {
         id: "arr-two-ptr",
         topic: "Arrays/Strings",
         prompt: "Which technique often finds a pair in a sorted array summing to a target in linear time?",

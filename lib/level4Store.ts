@@ -36,13 +36,20 @@ export async function recordAnswer(
     qid: string,
     selectedIndex: number,
     isCorrect: boolean
-): Promise<Level4State> {
-    const alreadyAnswered = Object.prototype.hasOwnProperty.call(state.answered, qid);
+) {
+    const alreadySolved = Object.prototype.hasOwnProperty.call(state.answered, qid);
 
     const next: Level4State = {
-        correct: state.correct + (!alreadyAnswered && isCorrect ? 1 : 0),
-        total: state.total + (!alreadyAnswered ? 1 : 0),
-        answered: { ...state.answered, [qid]: selectedIndex },
+        // count attempts as "total" (optional—keep if you want)
+        total: state.total + 1,
+
+        // only add to correct score the first time they solve it
+        correct: state.correct + (isCorrect && !alreadySolved ? 1 : 0),
+
+        // ✅ only mark "answered" when correct (this is what prevents skipping)
+        answered: isCorrect ? { ...state.answered, [qid]: selectedIndex } : state.answered,
+
+        // track misses if you want
         missed: isCorrect ? state.missed : { ...state.missed, [qid]: true },
     };
 
