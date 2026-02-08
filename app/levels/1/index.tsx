@@ -263,7 +263,20 @@ const techMatches = techKeywords.filter(k =>
 
   // other scores:
   const pageScore = wordCount < 700 ? 95 : 60;
-  const verbScore = strongMatches.length * 20;
+  
+  let verbScore = 50;
+
+if (strongMatches.length >= 6) verbScore = 95;
+else if (strongMatches.length >= 4) verbScore = 85;
+else if (strongMatches.length >= 2) verbScore = 70;
+else if (strongMatches.length >= 1) verbScore = 60;
+else verbScore = 45;
+
+/* Penalize excessive weak verbs */
+if (weakMatches.length >= 3) {
+  verbScore -= 15;
+}
+verbScore = Math.max(verbScore, 30);
   
   // keyword scoring
   /* TECH SCORE */
@@ -298,9 +311,56 @@ const atsScore = hasBadFormatting ? 65 : 90;
 
   const internshipScore = resumeText.toLowerCase().includes("intern") ? 90 : 60;
   const numberMatches = resumeText.match(/\d+/g) || [];
-const metricScore = numberMatches.length > 5 ? 90 : 60;
+
+  const impactIndicators = [
+  "%",
+  "increased",
+  "reduced",
+  "improved",
+  "optimized",
+  "decreased",
+  "boosted"
+];
+
+const impactMatches = impactIndicators.filter(word =>
+  resumeText.toLowerCase().includes(word)
+);
+
+const metricScore =
+  impactMatches.length >= 2 ? 90 :
+  impactMatches.length === 1 ? 75 :
+  50;
+  
+
 const gpaScore = resumeText.includes("gpa") ? 90 : 70;
-const awardScore = resumeText.includes("award") || resumeText.includes("hack")  ? 90 : 70;
+
+
+const awardKeywords = [
+  "award",
+  "awarded",
+  "scholar",
+  "scholarship",
+  "fellowship",
+  "dean",
+  "honor",
+  "honours",
+  "distinction",
+  "recognition",
+  "presidential",
+  "merit",
+  "grant",
+];
+
+const awardMatches = awardKeywords.filter((keyword) =>
+  resumeText.toLowerCase().includes(keyword)
+);
+
+const awardScore =
+  awardMatches.length >= 2
+    ? 95
+    : awardMatches.length === 1
+    ? 85
+    : 65;
 
 
   /* ---------------- INTEGRITY PENALTIES ---------------- */
@@ -591,6 +651,9 @@ const awardScore = resumeText.includes("award") || resumeText.includes("hack")  
     </ScrollView>
   );
 }
+
+
+
 
 
 
