@@ -252,10 +252,12 @@ const techKeywords = [
   "cloud",
 ];
 
-// Combine both
-const keywordList = [...generalKeywords, ...techKeywords];
+// Keyword
+const generalMatches = generalKeywords.filter(k =>
+  resumeText.toLowerCase().includes(k)
+);
 
-const keywordMatches = keywordList.filter((k) =>
+const techMatches = techKeywords.filter(k =>
   resumeText.toLowerCase().includes(k)
 );
 
@@ -264,13 +266,36 @@ const keywordMatches = keywordList.filter((k) =>
   const verbScore = strongMatches.length * 20;
   
   // keyword scoring
-  const totalPossibleKeywords = keywordList.length;
-const keywordScore = Math.min(
-  Math.floor((keywordMatches.length / totalPossibleKeywords) * 100),
+  /* TECH SCORE */
+let techScore = 0;
+
+if (techMatches.length >= 10) techScore = 100;
+else if (techMatches.length >= 7) techScore = 90;
+else if (techMatches.length >= 5) techScore = 80;
+else if (techMatches.length >= 3) techScore = 70;
+else if (techMatches.length >= 1) techScore = 55;
+else techScore = 30;
+
+/* GENERAL SCORE */
+let generalScore = Math.min(
+  Math.floor((generalMatches.length / generalKeywords.length) * 100),
   100
 );
 
-  const atsScore = resumeText.includes("|") ? 60 : 90;
+// reworked ats score logic
+const badFormattingPatterns = [
+  /={3,}/,
+  /_{3,}/,
+  /\*{3,}/,
+  /~~+/,
+  /\|{3,}/
+];
+
+const hasBadFormatting = badFormattingPatterns.some(pattern =>
+  pattern.test(resumeText)
+);
+const atsScore = hasBadFormatting ? 65 : 90;
+
   const internshipScore = resumeText.toLowerCase().includes("intern") ? 90 : 60;
   const numberMatches = resumeText.match(/\d+/g) || [];
 const metricScore = numberMatches.length > 5 ? 90 : 60;
@@ -288,18 +313,19 @@ const awardScore = resumeText.includes("award") || resumeText.includes("hack")  
   if (looksLikeCode) integrityPenalty += 60;
 
   const totalScore = Math.min(
-    Math.floor(
-      pageScore * 0.1 +
-      keywordScore * 0.25 +
-      verbScore * 0.15 +
-      metricScore * 0.15 +
-      internshipScore * 0.1 +
-      gpaScore * 0.05 +
-      awardScore * 0.1 +
-      atsScore * 0.1
-    ),
-    100
-  );
+  Math.floor(
+    techScore * 0.30 +        // stack + tools, main focus since the level is computer science centered
+    metricScore * 0.20 +      // quantified impact = huge
+    internshipScore * 0.15 +  // real-world experience
+    verbScore * 0.10 +        // execution language
+    atsScore * 0.10 +         // clean formatting
+    generalScore * 0.05 +     // soft skills
+    pageScore * 0.05 +        // structure
+    awardScore * 0.03 +       // nice to have
+    gpaScore * 0.02           // lowest impact
+  ),
+  100
+);
 
   /* ---------------- FINAL REPORT ---------------- */
 
@@ -307,15 +333,15 @@ const awardScore = resumeText.includes("award") || resumeText.includes("hack")  
     totalScore,
     pageScore,
     verbScore,
-    keywordScore,
     internshipScore,
+    techScore,
+    generalScore,
     gpaScore,
     awardScore,
     metricScore,
     atsScore,
     strongMatches,
     weakMatches,
-    keywordMatches,
     wordCount,
     isGibberish,
     excessiveRepetition,
@@ -539,9 +565,10 @@ const awardScore = resumeText.includes("award") || resumeText.includes("hack")  
               </Text>
             </ScoreCard>
 
-            <ScoreCard title="Keyword Match" score={report.keywordScore} />
             <ScoreCard title="Verb Strength" score={report.verbScore} />
             <ScoreCard title="ATS Compatibility" score={report.atsScore} />
+            <ScoreCard title="Technical Keywords" score={report.techScore} />
+            <ScoreCard title="General Keywords" score={report.generalScore} />
           </View>
 
           {/* HOME BUTTON */}
@@ -564,6 +591,7 @@ const awardScore = resumeText.includes("award") || resumeText.includes("hack")  
     </ScrollView>
   );
 }
+
 
 
 
