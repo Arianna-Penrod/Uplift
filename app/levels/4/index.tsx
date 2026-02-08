@@ -35,6 +35,29 @@ function anyUnansweredInTopic(topic: Topic, solved: Record<string, true>) {
     return topicPool(topic).some((qq) => !solved[qq.id]);
 }
 
+function ProgressCard({
+    title,
+    solved,
+    total,
+}: {
+    title: string;
+    solved: number;
+    total: number;
+}) {
+    const pct = total === 0 ? 0 : Math.round((solved / total) * 100);
+
+    return (
+        <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+            <Text style={{ fontWeight: "800" }}>
+                {title}: {solved}/{total} ({pct}%)
+            </Text>
+            <View style={{ height: 12, borderRadius: 999, borderWidth: 1, overflow: "hidden" }}>
+                <View style={{ height: "100%", width: `${pct}%`, backgroundColor: "black" }} />
+            </View>
+        </View>
+    );
+}
+
 export default function Level4() {
     const [progress, setProgress] = useState<Progress | null>(null);
     const [levelState, setLevelState] = useState<Level4State | null>(null);
@@ -44,12 +67,7 @@ export default function Level4() {
     const [selected, setSelected] = useState<number | null>(null);
     const [revealed, setRevealed] = useState(false);
 
-    // pool for the currently selected topic (empty if that topic is skipped)
-    const pool = useMemo(() => {
-        if (!levelState) return topicPool(topic);
-        if (levelState.skippedTopics?.[topic]) return [];
-        return topicPool(topic);
-    }, [topic, levelState]);
+    const pool = useMemo(() => topicPool(topic), [topic]);
 
     useFocusEffect(
         useCallback(() => {
@@ -69,11 +87,11 @@ export default function Level4() {
                 if (!alive) return;
                 setLevelState(s);
 
-                // If the current topic is skipped, auto-jump to first non-skipped topic (if any)
-                const startTopic =
-                    s.skippedTopics?.[topic] ? (L4_TOPICS.find((t) => !s.skippedTopics?.[t]) ?? topic) : topic;
+                // if current topic is skipped, jump to a non-skipped one
+                const startTopic = s.skippedTopics?.[topic]
+                    ? (L4_TOPICS.find((t) => !s.skippedTopics?.[t]) ?? topic)
+                    : topic;
 
-                // If topic changed due to skip, update it
                 if (startTopic !== topic) setTopic(startTopic);
 
                 const startPool = s.skippedTopics?.[startTopic] ? [] : topicPool(startTopic);
@@ -88,30 +106,25 @@ export default function Level4() {
         }, [topic])
     );
 
-    // loading
     if (!progress || !levelState) return <ActivityIndicator style={{ marginTop: 40 }} />;
 
-    // ✅ Completion and progress should ignore skipped topics
+    // ✅ Completion ignores skipped topics
     const activeQuestions = L4_QUESTIONS.filter((qq) => !levelState.skippedTopics?.[qq.topic]);
     const mcqTotal = activeQuestions.length;
-    const mcqSolvedCount = activeQuestions.reduce(
-        (acc, qq) => acc + (levelState.solved[qq.id] ? 1 : 0),
-        0
-    );
+    const mcqSolvedCount = activeQuestions.reduce((acc, qq) => acc + (levelState.solved[qq.id] ? 1 : 0), 0);
     const mcqComplete = mcqTotal === 0 ? true : mcqSolvedCount === mcqTotal;
+
+    const isCurrentTopicSkipped = !!levelState.skippedTopics?.[topic];
 
     // solved status for current question
     const solved = q ? !!levelState.solved[q.id] : false;
 
-    // require correct before next
-    const canGoNext = q ? solved : true;
+    // require correct before next (unless we're done and going to fill)
+    const canGoNext = mcqComplete ? true : q ? solved : true;
 
-    const isCurrentTopicSkipped = !!levelState.skippedTopics?.[topic];
-
-    // topic progress bar (only meaningful if not skipped)
+    // topic progress
     const topicSolved = pool.filter((qq) => levelState.solved[qq.id]).length;
     const topicTotal = pool.length;
-    const topicPct = topicTotal === 0 ? 0 : Math.round((topicSolved / topicTotal) * 100);
 
     const onSelectTopic = (t: Topic) => {
         setTopic(t);
@@ -182,16 +195,12 @@ export default function Level4() {
             }
         }
 
-        const nextTopic = L4_TOPICS.find(
-            (t) => !levelState.skippedTopics?.[t] && anyUnansweredInTopic(t, levelState.solved)
-        );
+        const nextTopic = L4_TOPICS.find((t) => !levelState.skippedTopics?.[t] && anyUnansweredInTopic(t, levelState.solved));
 
         if (nextTopic) {
             onSelectTopic(nextTopic);
             return;
         }
-
-        // nothing left (all active topics complete)
     };
 
     const onReset = async () => {
@@ -211,50 +220,36 @@ export default function Level4() {
         const next = await resetSkippedTopics(levelState);
         setLevelState(next);
 
-        // if current topic was skipped, bring it back and refresh
         const newPool = topicPool(topic);
         setQ(firstUnanswered(newPool, next.solved));
         setSelected(null);
         setRevealed(false);
     };
 
+    // ✅ Bottom button behavior:
+    // - If complete -> go to fill
+    // - Else -> next question (locked until solved)
+    const bottomLabel = mcqComplete ? "Fill in the blank questions" : "Next Question";
+    const onBottomPress = () => {
+        if (mcqComplete) router.replace("/levels/4/fill");
+        else onNext();
+    };
+
     return (
         <View style={{ padding: 16, gap: 12 }}>
             <Text style={{ fontSize: 24, fontWeight: "800" }}>Level 4: Technical Practice</Text>
 
-            {/* ✅ Continue button is locked until ALL ACTIVE MCQs are SOLVED */}
-            <Pressable
-                disabled={!mcqComplete}
-                onPress={() => router.replace("/levels/4/fill")}
-                style={{
-                    padding: 12,
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    opacity: mcqComplete ? 1 : 0.45,
-                }}
-            >
-                <Text style={{ textAlign: "center", fontWeight: "800" }}>
-                    {mcqComplete
-                        ? "Continue → Fill in the Blank"
-                        : mcqTotal === 0
-                            ? "All MCQ topics are skipped (reset skipped topics to continue)"
-                            : `Finish MCQs first (${mcqSolvedCount}/${mcqTotal})`}
-                </Text>
-            </Pressable>
+            {/* ✅ Overall progress bar (same style as fill) */}
+            <ProgressCard title="Overall Progress (active topics)" solved={mcqSolvedCount} total={mcqTotal} />
 
-            {/* Topic progress bar */}
-            <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
-                <Text style={{ fontWeight: "800" }}>
-                    {isCurrentTopicSkipped
-                        ? `Topic Progress: (skipped)`
-                        : `Topic Progress: ${topicSolved}/${topicTotal} (${topicPct}%)`}
-                </Text>
-                {!isCurrentTopicSkipped && (
-                    <View style={{ height: 12, borderRadius: 999, borderWidth: 1, overflow: "hidden" }}>
-                        <View style={{ height: "100%", width: `${topicPct}%`, backgroundColor: "black" }} />
-                    </View>
-                )}
-            </View>
+            {/* ✅ Topic progress bar (same style as fill) */}
+            {isCurrentTopicSkipped ? (
+                <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 8 }}>
+                    <Text style={{ fontWeight: "800" }}>Topic Progress: (skipped)</Text>
+                </View>
+            ) : (
+                <ProgressCard title={`Topic Progress (${topic})`} solved={topicSolved} total={topicTotal} />
+            )}
 
             <Text style={{ fontWeight: "800" }}>Topics (tap = select, long-press = skip/unskip)</Text>
 
@@ -301,17 +296,16 @@ export default function Level4() {
             {isCurrentTopicSkipped ? (
                 <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 10 }}>
                     <Text style={{ fontWeight: "800" }}>This topic is currently skipped.</Text>
-                    <Pressable
-                        onPress={() => onToggleSkip(topic)}
-                        style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}
-                    >
+                    <Pressable onPress={() => onToggleSkip(topic)} style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
                         <Text style={{ textAlign: "center", fontWeight: "800" }}>Unskip topic</Text>
                     </Pressable>
                 </View>
             ) : !q ? (
                 <View style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
                     <Text style={{ fontWeight: "800" }}>✅ Topic complete!</Text>
-                    <Text style={{ color: "#444" }}>Choose another topic or continue.</Text>
+                    <Text style={{ color: "#444" }}>
+                        {mcqComplete ? "All MCQs complete — continue below." : "Choose another topic or continue."}
+                    </Text>
                 </View>
             ) : (
                 <View style={{ padding: 12, borderWidth: 1, borderRadius: 10, gap: 10 }}>
@@ -320,11 +314,7 @@ export default function Level4() {
                     {q.choices.map((choice, idx) => {
                         const isPicked = selected === idx;
                         const bg =
-                            revealed && isPicked
-                                ? idx === q.answerIndex
-                                    ? "#d7ffd7"
-                                    : "#ffd7d7"
-                                : "transparent";
+                            revealed && isPicked ? (idx === q.answerIndex ? "#d7ffd7" : "#ffd7d7") : "transparent";
 
                         return (
                             <Pressable
@@ -356,7 +346,7 @@ export default function Level4() {
             <View style={{ flexDirection: "row", gap: 10 }}>
                 <Pressable
                     disabled={!canGoNext}
-                    onPress={onNext}
+                    onPress={onBottomPress}
                     style={{
                         flex: 1,
                         padding: 14,
@@ -365,9 +355,7 @@ export default function Level4() {
                         opacity: canGoNext ? 1 : 0.45,
                     }}
                 >
-                    <Text style={{ color: "#fff", textAlign: "center", fontWeight: "800" }}>
-                        Next Question
-                    </Text>
+                    <Text style={{ color: "#fff", textAlign: "center", fontWeight: "800" }}>{bottomLabel}</Text>
                 </Pressable>
 
                 <Pressable onPress={onReset} style={{ padding: 14, borderRadius: 10, borderWidth: 1 }}>

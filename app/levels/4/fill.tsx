@@ -1,6 +1,6 @@
 // app/levels/4/fill.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, Modal } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 
@@ -21,9 +21,8 @@ import { loadProgress } from "../../../lib/progress";
 export default function Level4Fill() {
     const [st, setSt] = useState<Level4FillState | null>(null);
     const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-
-    // ✅ must be declared before any conditional return
     const [cursorId, setCursorId] = useState<string | null>(null);
+    const [showCongrats, setShowCongrats] = useState(false);
 
     const topicLabel = (t?: string) => (t && t.trim().length ? t : "General");
 
@@ -33,7 +32,7 @@ export default function Level4Fill() {
         return Array.from(set).sort((a, b) => a.localeCompare(b));
     }, []);
 
-    // ✅ reset cursor when topic changes (side effect = useEffect)
+    // reset cursor when topic changes
     useEffect(() => {
         setCursorId(null);
     }, [selectedTopic]);
@@ -51,7 +50,7 @@ export default function Level4Fill() {
                     return;
                 }
 
-                // Gate: require MCQs complete
+                // Gate: require MCQs complete (ignoring skipped MCQ topics)
                 const mcq = await loadLevel4();
                 const activeMcqs = L4_QUESTIONS.filter((qq) => !mcq.skippedTopics?.[qq.topic]);
                 const mcqSolvedCount = activeMcqs.reduce((acc, qq) => acc + (mcq.solved[qq.id] ? 1 : 0), 0);
@@ -64,7 +63,9 @@ export default function Level4Fill() {
 
                 const s = await loadLevel4Fill();
                 if (!alive) return;
+
                 setSt(s);
+                setShowCongrats(false);
 
                 const firstNonSkippedWithUnsolved =
                     topics.find(
@@ -85,24 +86,46 @@ export default function Level4Fill() {
         }, [topics])
     );
 
-    // ✅ safe early return now that all hooks are declared above
-    if (!st) return <ActivityIndicator style={{ marginTop: 40 }} />;
+    // ---- Derived values (NO HOOKS) ----
+    const activeExercises =
+        st ? L4_FILL_EXERCISES.filter((ex) => !st.skippedTopics[topicLabel((ex as any).topic)]) : [];
 
-    const activeExercises = useMemo(
-        () => L4_FILL_EXERCISES.filter((ex) => !st.skippedTopics[topicLabel((ex as any).topic)]),
-        [st]
-    );
-
-    const solvedCount = activeExercises.filter((ex) => st.solved[ex.id]).length;
+    const solvedCount = st ? activeExercises.filter((ex) => st.solved[ex.id]).length : 0;
     const total = activeExercises.length;
     const pct = total === 0 ? 0 : Math.round((solvedCount / total) * 100);
 
-    const selectedPool = useMemo(() => {
-        if (!selectedTopic) return [];
-        return activeExercises.filter((ex) => topicLabel((ex as any).topic) === selectedTopic);
-    }, [activeExercises, selectedTopic]);
+    const anyActiveUnsolved = st ? activeExercises.some((ex) => !st.solved[ex.id]) : true;
+    const fillComplete = !!st && (total === 0 ? true : !anyActiveUnsolved);
 
-    const anyActiveUnsolved = activeExercises.some((ex) => !st.solved[ex.id]);
+    // show congrats once when completed
+    useEffect(() => {
+        if (fillComplete && !showCongrats) setShowCongrats(true);
+    }, [fillComplete, showCongrats]);
+
+    // If still loading, render spinner (no early return => no hook order problems)
+    if (!st) {
+        return <ActivityIndicator style={{ marginTop: 40 }} />;
+    }
+
+    const selectedPool = selectedTopic
+        ? activeExercises.filter((ex) => topicLabel((ex as any).topic) === selectedTopic)
+        : [];
+
+    const topicSolved = selectedPool.filter((ex) => st.solved[ex.id]).length;
+    const topicTotal = selectedPool.length;
+    const topicPct = topicTotal === 0 ? 0 : Math.round((topicSolved / topicTotal) * 100);
+
+    const effectiveCurrent = (() => {
+        if (!selectedTopic) return null;
+
+        const firstUnsolved = selectedPool.find((ex) => !st.solved[ex.id]) ?? null;
+        if (!cursorId) return firstUnsolved;
+
+        const found = selectedPool.find((ex) => ex.id === cursorId) ?? null;
+        if (found && !st.solved[found.id]) return found;
+
+        return firstUnsolved;
+    })();
 
     const jumpToNextTopicWithUnsolved = () => {
         const next =
@@ -122,15 +145,12 @@ export default function Level4Fill() {
         const nextState = await toggleFillTopicSkip(st, t);
         setSt(nextState);
 
-        // If we just skipped the selected topic, move to a valid next topic
         if (selectedTopic === t && nextState.skippedTopics[t]) {
             const next =
                 topics.find(
                     (x) =>
                         !nextState.skippedTopics[x] &&
-                        L4_FILL_EXERCISES.some(
-                            (ex) => topicLabel((ex as any).topic) === x && !nextState.solved[ex.id]
-                        )
+                        L4_FILL_EXERCISES.some((ex) => topicLabel((ex as any).topic) === x && !nextState.solved[ex.id])
                 ) ??
                 topics.find((x) => !nextState.skippedTopics[x]) ??
                 null;
@@ -140,24 +160,6 @@ export default function Level4Fill() {
         }
     };
 
-    // effective current = cursor (if unsolved) else first unsolved in selected topic
-    const effectiveCurrent = useMemo(() => {
-        if (!selectedTopic) return null;
-
-        const firstUnsolved = selectedPool.find((ex) => !st.solved[ex.id]) ?? null;
-        if (!cursorId) return firstUnsolved;
-
-        const found = selectedPool.find((ex) => ex.id === cursorId) ?? null;
-        if (found && !st.solved[found.id]) return found;
-
-        return firstUnsolved;
-    }, [cursorId, selectedPool, selectedTopic, st]);
-
-    const topicSolved = selectedPool.filter((ex) => st.solved[ex.id]).length;
-    const topicTotal = selectedPool.length;
-    const topicPct = topicTotal === 0 ? 0 : Math.round((topicSolved / topicTotal) * 100);
-
-    // ✅ Next Exercise button (advances within topic; if none, jumps to next topic)
     const onNextExercise = () => {
         if (!effectiveCurrent) {
             jumpToNextTopicWithUnsolved();
@@ -174,13 +176,55 @@ export default function Level4Fill() {
             }
         }
 
-        // no more unsolved in this topic → next topic
         setCursorId(null);
         jumpToNextTopicWithUnsolved();
     };
 
     return (
         <View style={{ padding: 16, gap: 12 }}>
+            {/* ✅ Congrats popup */}
+            <Modal
+                transparent
+                visible={showCongrats}
+                animationType="fade"
+                onRequestClose={() => setShowCongrats(false)}
+            >
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", padding: 20 }}>
+                    <View style={{ backgroundColor: "white", borderRadius: 14, padding: 16, gap: 12 }}>
+                        <Text style={{ fontSize: 20, fontWeight: "900" }}>🎉 Congrats!</Text>
+                        <Text style={{ color: "#333" }}>
+                            You finished all active Level 4 fill-in-the-blank exercises.
+                        </Text>
+
+                        <View style={{ flexDirection: "row", gap: 10 }}>
+                            <Pressable
+                                onPress={() => {
+                                    setShowCongrats(false);
+                                    router.replace("/");
+                                }}
+                                style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: "black" }}
+                            >
+                                <Text style={{ color: "white", textAlign: "center", fontWeight: "800" }}>Return Home</Text>
+                            </Pressable>
+
+                            <Pressable
+                                onPress={() => {
+                                    setShowCongrats(false);
+                                    router.replace("/levels/4");
+                                }}
+                                style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1 }}
+                            >
+                                <Text style={{ textAlign: "center", fontWeight: "800" }}>Back to Level 4</Text>
+                            </Pressable>
+                        </View>
+
+                        <Pressable onPress={() => setShowCongrats(false)} style={{ padding: 10 }}>
+                            <Text style={{ textAlign: "center", fontWeight: "800" }}>Close</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+
             <Text style={{ fontSize: 24, fontWeight: "800" }}>Level 4: Fill in the Blank</Text>
 
             {/* Topics */}
@@ -276,17 +320,9 @@ export default function Level4Fill() {
                             <Text style={{ textAlign: "center", fontWeight: "800" }}>Go to next topic</Text>
                         </Pressable>
                     )}
-
-                    <Pressable
-                        onPress={() => router.replace("/levels/4")}
-                        style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}
-                    >
-                        <Text style={{ textAlign: "center", fontWeight: "800" }}>Back to MCQ</Text>
-                    </Pressable>
                 </View>
             ) : (
                 <View style={{ gap: 12 }}>
-                    {/* key forces FillBlankCode to reset inputs when switching */}
                     <FillBlankCode
                         key={effectiveCurrent.id}
                         exercise={effectiveCurrent}
@@ -303,6 +339,7 @@ export default function Level4Fill() {
                 </View>
             )}
 
+            {/* Bottom buttons */}
             <View style={{ flexDirection: "row", gap: 10 }}>
                 <Pressable
                     onPress={() => router.replace("/levels/4")}
@@ -312,12 +349,20 @@ export default function Level4Fill() {
                 </Pressable>
 
                 <Pressable
+                    onPress={() => router.replace("/")}
+                    style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: "black" }}
+                >
+                    <Text style={{ color: "white", textAlign: "center", fontWeight: "800" }}>Home</Text>
+                </Pressable>
+
+                <Pressable
                     onPress={async () => {
                         const cleared = await resetLevel4Fill();
                         setSt(cleared);
                         const firstNonSkipped = topics.find((t) => !cleared.skippedTopics[t]) ?? (topics[0] ?? null);
                         setSelectedTopic(firstNonSkipped);
                         setCursorId(null);
+                        setShowCongrats(false);
                     }}
                     style={{ padding: 14, borderRadius: 10, borderWidth: 1 }}
                 >
