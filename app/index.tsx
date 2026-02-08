@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from "react-native";
 import { router } from "expo-router";
+// app/index.tsx
+import { useCallback, useState } from "react";
+import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import { loadProgress, saveProgress, type Progress } from "../lib/progress";
 
 type Feedback = {
   overallScore: number;
@@ -15,6 +21,17 @@ export default function Level2ElevatorPitch() {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
+    useFocusEffect(
+        useCallback(() => {
+            let alive = true;
+            loadProgress().then((prog) => {
+                if (alive) setP(prog);
+            });
+            return () => {
+                alive = false;
+            };
+        }, [])
+    );
 
   async function getFeedback() {
     setLoading(true);
@@ -37,6 +54,40 @@ export default function Level2ElevatorPitch() {
       setLoading(false);
     }
   }
+    const levels = [
+        { id: 1, title: "Resume" },
+        { id: 2, title: "Elevator Pitch" },
+        { id: 3, title: "Professional Profile" },
+        { id: 4, title: "Technical" },
+    ] as const;
+
+    return (
+        <View style={{ padding: 16, gap: 12 }}>
+            <Text style={{ fontSize: 26, fontWeight: "700" }}>Interview Prep</Text>
+
+            {/* DEV TOGGLE BUTTON */}
+            <Pressable
+                onPress={async () => {
+                    // If everything is unlocked, lock back down to Level 1.
+                    // Otherwise unlock everything.
+                    const nextUnlocked = p.unlockedLevel >= 4 ? 1 : 4;
+
+                    const updated: Progress = { ...p, unlockedLevel: nextUnlocked };
+                    await saveProgress(updated);
+                    setP(updated);
+                }}
+                style={{
+                    padding: 14,
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    backgroundColor: "#eee",
+                }}
+            >
+                <Text style={{ textAlign: "center", fontWeight: "700" }}>
+                    {p.unlockedLevel >= 4 ? "DEV: Lock levels (only Level 1)" : "DEV: Unlock all levels"}
+                </Text>
+            </Pressable>
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
