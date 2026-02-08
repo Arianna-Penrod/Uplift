@@ -48,6 +48,7 @@ export default function Index() {
   /* ---------------- ANALYZER STATE ---------------- */
   const [resumeText, setResumeText] = useState("");
   const [report, setReport] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   /* ---------------- QUIZ LOGIC ---------------- */
 
@@ -64,82 +65,149 @@ export default function Index() {
   /* ---------------- RESUME ANALYSIS ---------------- */
 
   const analyzeResume = () => {
-    if (!resumeText) return;
+  if (!resumeText) return;
 
-    const wordCount = resumeText.split(" ").length;
+  const wordCount = resumeText.trim().split(/\s+/).length;
 
-    const strongVerbs = ["led", "managed", "built", "created", "improved"];
-    const weakVerbs = ["responsible", "helped", "worked"];
+  /* ---------------- MINIMUM WORD REQUIREMENT ---------------- */
+    if (wordCount < 200) {
+      const wordsNeeded = 200 - wordCount;
 
-    const strongMatches = strongVerbs.filter((v) =>
-      resumeText.toLowerCase().includes(v)
-    );
+      setErrorMessage(
+        `🔒 Add ${wordsNeeded} more word${wordsNeeded === 1 ? "" : "s"} to unlock scoring.`
+      );
 
-    const weakMatches = weakVerbs.filter((v) =>
-      resumeText.toLowerCase().includes(v)
-    );
+      setReport(null);
+      return;
+    }
 
-    const keywordList = ["leadership", "project", "analysis", "team"];
-    const keywordMatches = keywordList.filter((k) =>
-      resumeText.toLowerCase().includes(k)
-    );
+  /* ---------------- CLEAN WORD PROCESSING ---------------- */
 
-    const pageScore = wordCount < 700 ? 95 : 60;
-    const verbScore = strongMatches.length * 20;
-    const keywordScore = keywordMatches.length * 25;
-    const atsScore = resumeText.includes("|") ? 60 : 90;
+  const words = resumeText
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
 
-    const totalScore = Math.min(
-      Math.floor((pageScore + verbScore + keywordScore + atsScore) / 4),
-      100
-    );
+  const uniqueWords = new Set(words);
+  const uniqueRatio = uniqueWords.size / words.length;
 
+  /* ---------------- ANTI-GIBBERISH DETECTION ---------------- */
+
+  const repeatedCharPattern = /(.)\1{4,}/g;
+  const hasRepeatedCharacters = repeatedCharPattern.test(resumeText);
+
+  const lowVocabulary = uniqueRatio < 0.4;
+  const isGibberish = hasRepeatedCharacters || lowVocabulary;
+
+  /* ---------------- SENTENCE DETECTION ---------------- */
+
+  const sentences = resumeText.match(/[^.!?]+[.!?]+/g) || [];
+  const sentenceCount = sentences.length;
+
+  const hasSentenceStructure = sentenceCount >= 3;
+
+  /* ---------------- CODE DETECTION ---------------- */
+
+const codePatterns = [
+  /const\s+/,
+  /let\s+/,
+  /var\s+/,
+  /function\s+/,
+  /=>/,
+  /import\s+/,
+  /export\s+/,
+  /{.*}/,
+  /<\/?[a-z][\s\S]*>/i, // HTML tags
+];
+
+const looksLikeCode = codePatterns.some((pattern) =>
+    pattern.test(resumeText)
+  );
+
+  if (looksLikeCode) {
     setReport({
-      totalScore,
-      pageScore,
-      verbScore,
-      keywordScore,
-      atsScore,
-      strongMatches,
-      weakMatches,
-      keywordMatches,
+      error:
+        "This looks like programming code, not a resume. Please paste a professional resume.",
       wordCount,
     });
-  };
+    return;
+  }
 
-  /* ---------------- PERSONAL RECOMMENDATIONS ---------------- */
+  /* ---------------- REPETITION DETECTION ---------------- */
 
-  const generateRecommendations = (report: any) => {
-    const recommendations: string[] = [];
+  const repetitionThreshold = 0.15;
+  let excessiveRepetition = false;
 
-    if (report.wordCount > 700) {
-      recommendations.push("Consider shortening your resume to improve readability and impact.");
+  words.forEach((word) => {
+    const frequency =
+      words.filter((w) => w === word).length / words.length;
+
+    if (frequency > repetitionThreshold) {
+      excessiveRepetition = true;
     }
+  });
 
-    if (report.weakMatches.length > 0) {
-      recommendations.push(
-        `Replace weak action verbs like: ${report.weakMatches.join(", ")}`
-      );
-    }
+  /* ---------------- ORIGINAL SCORING ---------------- */
 
-    if (report.keywordMatches.length < 2) {
-      recommendations.push("Add more role-specific keywords from job descriptions.");
-    }
+  const strongVerbs = ["led", "managed", "built", "created", "improved"];
+  const weakVerbs = ["responsible", "helped", "worked"];
 
-    if (report.atsScore < 80) {
-      recommendations.push("Simplify formatting to improve ATS compatibility.");
-    }
+  const strongMatches = strongVerbs.filter((v) =>
+    resumeText.toLowerCase().includes(v)
+  );
 
-    if (report.totalScore >= 85) {
-      recommendations.push("Strong resume overall. Focus on tailoring it to each role.");
-    }
+  const weakMatches = weakVerbs.filter((v) =>
+    resumeText.toLowerCase().includes(v)
+  );
 
-    if (recommendations.length === 0) {
-      recommendations.push("Great foundation. Continue refining bullet clarity and impact.");
-    }
+  const keywordList = ["leadership", "project", "analysis", "team"];
+  const keywordMatches = keywordList.filter((k) =>
+    resumeText.toLowerCase().includes(k)
+  );
 
-    return recommendations;
-  };
+  const pageScore = wordCount < 700 ? 95 : 60;
+  const verbScore = strongMatches.length * 20;
+  const keywordScore = keywordMatches.length * 25;
+  const atsScore = resumeText.includes("|") ? 60 : 90;
+
+  /* ---------------- INTEGRITY PENALTIES ---------------- */
+
+  let integrityPenalty = 0;
+
+  if (isGibberish) integrityPenalty += 25;
+  if (!hasSentenceStructure) integrityPenalty += 20;
+  if (excessiveRepetition) integrityPenalty += 20;
+  if (looksLikeCode) integrityPenalty += 60;
+
+  const totalScore = Math.max(
+    Math.min(
+      Math.floor(
+        (pageScore + verbScore + keywordScore + atsScore) / 4
+      ) - integrityPenalty,
+      100
+    ),
+    0
+  );
+
+  /* ---------------- FINAL REPORT ---------------- */
+
+  setReport({
+    totalScore,
+    pageScore,
+    verbScore,
+    keywordScore,
+    atsScore,
+    strongMatches,
+    weakMatches,
+    keywordMatches,
+    wordCount,
+    isGibberish,
+    excessiveRepetition,
+    hasSentenceStructure,
+    error: null,
+  });
+};
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "#0c3a86ff";
@@ -228,7 +296,8 @@ export default function Index() {
         <Text style={{ marginTop: 6 }}>{xp} XP</Text>
       </View>
 
-      {/* QUIZ */}
+      {/* ---------------- QUIZ ---------------- */}
+
       {stage === "quiz" && (
         <View>
           <Text style={{ fontSize: 20, marginBottom: 20 }}>
@@ -252,7 +321,8 @@ export default function Index() {
         </View>
       )}
 
-      {/* ANALYZER */}
+      {/* ---------------- ANALYZER ---------------- */}
+
       {stage === "analyzer" && (
         <>
           <Text style={{ fontSize: 24, fontWeight: "700", marginBottom: 10 }}>
@@ -271,9 +341,30 @@ export default function Index() {
               height: 150,
               borderWidth: 1,
               borderColor: "#ddd",
-              marginBottom: 16,
+              marginBottom: 10,
             }}
           />
+
+          {/* WORD COUNT DISPLAY */}
+          <Text style={{ marginBottom: 10 }}>
+            Word Count: {resumeText.trim() ? resumeText.trim().split(/\s+/).length : 0}
+          </Text>
+
+          {/* ERROR MESSAGE */}
+          {errorMessage !== "" && (
+            <View
+              style={{
+                backgroundColor: "#ffffffff",
+                padding: 12,
+                borderRadius: 10,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ color: "#5568a9ff", fontWeight: "600" }}>
+                {errorMessage}
+              </Text>
+            </View>
+          )}
 
           <Pressable
             onPress={analyzeResume}
@@ -292,7 +383,8 @@ export default function Index() {
         </>
       )}
 
-      {/* RESULTS */}
+      {/* ---------------- RESULTS ---------------- */}
+
       {report && (
         <>
           <View
@@ -333,32 +425,8 @@ export default function Index() {
             </ScoreCard>
 
             <ScoreCard title="Keyword Match" score={report.keywordScore} />
-
             <ScoreCard title="Verb Strength" score={report.verbScore} />
-
             <ScoreCard title="ATS Compatibility" score={report.atsScore} />
-          </View>
-
-          {/* PERSONAL RECOMMENDATIONS */}
-          <View
-            style={{
-              backgroundColor: "#fff",
-              padding: 20,
-              borderRadius: 16,
-              marginTop: 10,
-            }}
-          >
-            <Text style={{ fontWeight: "600", marginBottom: 10 }}>
-              Personal Recommendations
-            </Text>
-
-            {generateRecommendations(report).map(
-              (rec: string, index: number) => (
-                <Text key={index} style={{ marginBottom: 8 }}>
-                  • {rec}
-                </Text>
-              )
-            )}
           </View>
 
           {/* HOME BUTTON */}
