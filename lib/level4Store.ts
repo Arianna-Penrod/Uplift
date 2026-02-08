@@ -1,25 +1,39 @@
 // lib/level4Store.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const KEY = "level4_state_v1";
+const KEY = "level4_state_v2";
 
+/**
+ * attempted: last selected choice for a question (saved even if wrong)
+ * solved: only set when the question is answered correctly
+ * missed: marked if the user ever got that question wrong
+ */
 export type Level4State = {
-    correct: number;
-    total: number;
-    answered: Record<string, number>; // questionId -> selectedIndex
-    missed: Record<string, true>;     // questionId -> true
+    attempted: Record<string, number>; // qid -> last selected index
+    solved: Record<string, true>;      // qid -> true (only when correct)
+    missed: Record<string, true>;      // qid -> true (if ever wrong)
 };
 
 const DEFAULT: Level4State = {
-    correct: 0,
-    total: 0,
-    answered: {},
+    attempted: {},
+    solved: {},
     missed: {},
 };
 
 export async function loadLevel4(): Promise<Level4State> {
     const raw = await AsyncStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Level4State) : DEFAULT;
+    if (!raw) return DEFAULT;
+
+    try {
+        const parsed = JSON.parse(raw) as Partial<Level4State>;
+        return {
+            attempted: parsed.attempted ?? {},
+            solved: parsed.solved ?? {},
+            missed: parsed.missed ?? {},
+        };
+    } catch {
+        return DEFAULT;
+    }
 }
 
 export async function saveLevel4(s: Level4State) {
@@ -36,21 +50,11 @@ export async function recordAnswer(
     qid: string,
     selectedIndex: number,
     isCorrect: boolean
-) {
-    const alreadySolved = Object.prototype.hasOwnProperty.call(state.answered, qid);
-
+): Promise<Level4State> {
     const next: Level4State = {
-        // count attempts as "total" (optional—keep if you want)
-        total: state.total + 1,
-
-        // only add to correct score the first time they solve it
-        correct: state.correct + (isCorrect && !alreadySolved ? 1 : 0),
-
-        // ✅ only mark "answered" when correct (this is what prevents skipping)
-        answered: isCorrect ? { ...state.answered, [qid]: selectedIndex } : state.answered,
-
-        // track misses if you want
-        missed: isCorrect ? state.missed : { ...state.missed, [qid]: true },
+        attempted: { ...state.attempted, [qid]: selectedIndex },
+        solved: isCorrect ? { ...state.solved, [qid]: true } : state.solved,
+        missed: !isCorrect ? { ...state.missed, [qid]: true } : state.missed,
     };
 
     await saveLevel4(next);
