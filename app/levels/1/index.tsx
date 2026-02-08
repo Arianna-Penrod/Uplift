@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Alert } from "react-native";
+import { View, Text, Pressable, Alert, ScrollView } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
@@ -14,44 +14,21 @@ export default function Level1() {
     });
 
     if (result.canceled) return;
-
     setFile(result.assets[0]);
   };
 
   const uploadResume = async () => {
     if (!file) {
-      Alert.alert("No file selected");
+      Alert.alert("You must upload a resume first.");
       return;
     }
 
-    const formData = new FormData();
-
-    formData.append("resume", {
-      uri: file.uri,
-      name: file.name,
-      type: file.mimeType || "application/pdf",
-    } as any);
-
-    try {
-      const response = await fetch("http://localhost:5000/analyze-resume", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      console.log(data);
-      Alert.alert("Resume uploaded successfully");
-
-      router.replace("/"); // Go home after success
-
-    } catch (err) {
-      Alert.alert("Upload failed");
-    }
+    Alert.alert("Analyze button pressed (placeholder)");
   };
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
+    <ScrollView style={{ flex: 1, padding: 20 }}>
+
       <Text style={{ fontSize: 28, fontWeight: "700", marginBottom: 20 }}>
         Level 1: Upload Resume
       </Text>
@@ -78,11 +55,12 @@ export default function Level1() {
 
       <Pressable
         onPress={uploadResume}
+        disabled={!file}
         style={{
-          backgroundColor: "black",
+          backgroundColor: file ? "black" : "#ccc",
           padding: 14,
           borderRadius: 8,
-          marginBottom: 20,
+          marginBottom: 30,
         }}
       >
         <Text style={{ color: "white", textAlign: "center" }}>
@@ -90,7 +68,42 @@ export default function Level1() {
         </Text>
       </Pressable>
 
-      {/* 🏠 HOME BUTTON */}
+      {/* 🔥 Resume Tips Section */}
+
+      <View
+        style={{
+          backgroundColor: "#f2f2f2",
+          padding: 16,
+          borderRadius: 10,
+          marginBottom: 20,
+        }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: "600", marginBottom: 10 }}>
+          General Resume Tips
+        </Text>
+
+        <Text style={{ marginBottom: 8 }}>
+          • No more than one page if you are still in school or have been out of school for less than 4 years
+        </Text>
+
+        <Text style={{ marginBottom: 8 }}>
+          • Keep in chronological order
+        </Text>
+
+        <Text style={{ marginBottom: 8 }}>
+          • Use relevant action verbs to describe skills and accomplishments
+        </Text>
+
+        <Text style={{ marginBottom: 8 }}>
+          • Quantify results whenever possible, use specific numbers or metrics to highlight your accomplishments
+        </Text>
+
+        <Text>
+          • Tailor resume to job opening
+        </Text>
+      </View>
+
+      {/* 🏠 Back Home */}
       <Pressable
         onPress={() => router.replace("/")}
         style={{
@@ -104,6 +117,8 @@ export default function Level1() {
           Back Home
         </Text>
       </Pressable>
-    </View>
+
+    </ScrollView>
   );
 }
+
